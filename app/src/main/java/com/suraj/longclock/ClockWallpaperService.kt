@@ -73,9 +73,15 @@ class ClockWallpaperService : WallpaperService() {
                 val timePattern = if (use24) { if (showSeconds) "HH:mm:ss" else "HH:mm" } else { if (showSeconds) "h:mm:ss" else "h:mm" }
                 val time = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
                 val date = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(now)
-                val white = Color.WHITE
+                val clockColor = when (prefs.getInt("clock_color", 0)) {
+                    1 -> Color.rgb(255, 205, 90)
+                    2 -> Color.rgb(130, 220, 255)
+                    3 -> Color.rgb(255, 145, 190)
+                    4 -> Color.rgb(145, 235, 165)
+                    else -> Color.WHITE
+                }
                 val x: Float
-                val y: Float
+                var y: Float
                 val size: Float
                 val align: Paint.Align
                 val face: Typeface
@@ -101,8 +107,20 @@ class ClockWallpaperService : WallpaperService() {
                         face = Typeface.create("monospace", Typeface.NORMAL)
                     }
                 }
+                val sizeFactor = when (prefs.getInt("clock_size", 1)) {
+                    0 -> 0.78f
+                    2 -> 1.22f
+                    else -> 1f
+                }
+                val positionY = when (prefs.getInt("clock_position", 0)) {
+                    1 -> h * 0.50f
+                    2 -> h * 0.72f
+                    else -> h * 0.22f
+                }
+                y = positionY
+                val customSize = size * sizeFactor
                 val clockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = white; textAlign = align; typeface = face; textSize = size
+                    color = clockColor; textAlign = align; typeface = face; textSize = customSize
                     setShadowLayer(14f, 0f, 3f, Color.BLACK)
                 }
                 val datePaint = Paint(clockPaint).apply {
@@ -110,9 +128,9 @@ class ClockWallpaperService : WallpaperService() {
                     typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
                     letterSpacingCompat()
                 }
-                val dateY = y + size * 0.62f
+                val dateY = y + customSize * 0.62f
                 if (style == 1) {
-                    canvas.drawText(date.uppercase(Locale.getDefault()), x, y - size * 0.85f, datePaint)
+                    canvas.drawText(date.uppercase(Locale.getDefault()), x, y - customSize * 0.85f, datePaint)
                     canvas.drawText(time, x, y, clockPaint)
                 } else {
                     canvas.drawText(time, x, y, clockPaint)

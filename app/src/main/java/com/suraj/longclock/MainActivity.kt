@@ -13,9 +13,8 @@ import android.graphics.Color
 class MainActivity : Activity() {
     private val pickPhoto = 41
     private val prefs by lazy { getSharedPreferences("clock_wallpaper", MODE_PRIVATE) }
-    private val styles = listOf(
-        "iPhone Long Clock", "Samsung One UI", "Google Pixel", "Minimal Luxury", "Classic Digital"
-    )
+    private val styles = listOf("iPhone Long Clock", "Samsung One UI", "Google Pixel", "Minimal Luxury", "Classic Digital")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val pad = (22 * resources.displayMetrics.density).toInt()
@@ -31,7 +30,7 @@ class MainActivity : Activity() {
             typeface = android.graphics.Typeface.create("sans-serif-medium", 0)
         })
         root.addView(TextView(this).apply {
-            text = "Apni photo + apna favourite phone-style clock"
+            text = "Live clock pehle se ON hai — photo ke bina bhi clock dikhegi."
             textSize = 14f
             setTextColor(Color.LTGRAY)
             setPadding(0, 8, 0, pad)
@@ -44,37 +43,36 @@ class MainActivity : Activity() {
                 setPadding(0, pad / 2, 0, 8)
             })
         }
-        label("01  WALLPAPER DESIGN")
-        val spinner = Spinner(this)
-        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, styles)
-        spinner.setSelection(prefs.getInt("style", 0).coerceIn(styles.indices))
-        spinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                prefs.edit().putInt("style", position).apply()
+        fun addSpinner(items: List<String>, key: String, default: Int) {
+            val spinner = Spinner(this)
+            spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
+            spinner.setSelection(prefs.getInt(key, default).coerceIn(items.indices))
+            spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: AdapterView<*>?) {}
+                override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                    prefs.edit().putInt(key, position).apply()
+                }
             }
+            root.addView(spinner, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, pad * 2))
         }
-        root.addView(spinner, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, pad * 2))
-        label("02  CLOCK FORMAT")
-        val format = Spinner(this)
-        format.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, listOf("24-hour", "12-hour"))
-        format.setSelection(prefs.getInt("format", 0).coerceIn(0, 1))
-        format.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
-                prefs.edit().putInt("format", position).apply()
-            }
-        }
-        root.addView(format, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, pad * 2))
-        val seconds = CheckBox(this).apply {
+        label("01  CLOCK DESIGN")
+        addSpinner(styles, "style", 0)
+        label("02  TIME FORMAT")
+        addSpinner(listOf("24-hour", "12-hour"), "format", 0)
+        root.addView(CheckBox(this).apply {
             text = "Show seconds"
             setTextColor(Color.WHITE)
             buttonTintList = android.content.res.ColorStateList.valueOf(Color.WHITE)
             isChecked = prefs.getBoolean("seconds", true)
             setOnCheckedChangeListener { _, checked -> prefs.edit().putBoolean("seconds", checked).apply() }
-        }
-        root.addView(seconds)
-        label("03  YOUR PHOTO")
+        })
+        label("03  CUSTOM CLOCK — COLOR")
+        addSpinner(listOf("White", "Gold", "Ice Blue", "Pink", "Green"), "clock_color", 0)
+        label("CUSTOM CLOCK — SIZE")
+        addSpinner(listOf("Small", "Medium", "Large"), "clock_size", 1)
+        label("CUSTOM CLOCK — POSITION")
+        addSpinner(listOf("Top", "Center", "Bottom"), "clock_position", 0)
+        label("04  YOUR PHOTO")
         root.addView(Button(this).apply {
             text = "Choose photo from gallery"
             setOnClickListener {
@@ -86,7 +84,7 @@ class MainActivity : Activity() {
                 startActivityForResult(intent, pickPhoto)
             }
         })
-        label("04  APPLY")
+        label("05  APPLY")
         root.addView(Button(this).apply {
             text = "Preview & set live wallpaper"
             setOnClickListener {
@@ -98,7 +96,7 @@ class MainActivity : Activity() {
             }
         })
         root.addView(TextView(this).apply {
-            text = "\nStyles are inspired by familiar phone design languages; this is an independent Android wallpaper, not Apple's or Samsung's official UI. Lock-screen support depends on your phone."
+            text = "\nClock automatically appears and updates every second. Photo is optional. Lock-screen support depends on your phone."
             textSize = 12f
             setTextColor(Color.LTGRAY)
         })

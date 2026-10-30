@@ -120,7 +120,7 @@ class ClockWallpaperService : WallpaperService() {
                 if(prefs.getBoolean("show_date",true)) canvas.drawText(date.uppercase(Locale.getDefault()),x,dateY,dp)
                 if(!use24) canvas.drawText(SimpleDateFormat("a",Locale.getDefault()).format(now),x,dateY+w*.07f,Paint(dp).apply { textSize=w*.035f })
                 if(style==5) {
-                    val hud=Paint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.argb(130,100,220,255); style=Paint.Style.STROKE; strokeWidth=2f }
+                    val hud=Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color=Color.argb(130,100,220,255); this.style=Paint.Style.STROKE; this.strokeWidth=2f }
                     canvas.drawCircle(w*.5f,y-base*.48f,base*.8f,hud)
                     canvas.drawLine(w*.12f,y+base*.8f,w*.88f,y+base*.8f,hud)
                 }

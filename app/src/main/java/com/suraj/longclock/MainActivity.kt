@@ -6,101 +6,103 @@ import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.graphics.Color
+import android.graphics.Typeface
+import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import android.graphics.Color
 
 class MainActivity : Activity() {
     private val pickPhoto = 41
     private val prefs by lazy { getSharedPreferences("clock_wallpaper", MODE_PRIVATE) }
-    private val styles = listOf("iPhone Long Clock", "Samsung One UI", "Google Pixel", "Minimal Luxury", "Classic Digital")
+    private val styles = listOf("iPhone Long Clock", "Samsung One UI", "Google Pixel", "Minimal Luxury", "Classic Digital", "Tony Tech HUD")
+    private val themes = listOf("Midnight AMOLED", "MrBeast Energy", "Tony Tech Reactor", "Anime Energy", "Supercar Night", "Cyberpunk City", "Luxury Gold", "Ocean Aurora", "Photo Wallpaper")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val pad = (22 * resources.displayMetrics.density).toInt()
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val scroll = ScrollView(this)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad * 2, pad, pad)
-            setBackgroundColor(Color.rgb(12, 16, 25))
+            setPadding(pad, pad * 2, pad, pad * 2)
+            setBackgroundColor(Color.rgb(7, 10, 18))
         }
-        root.addView(TextView(this).apply {
-            text = "LONG CLOCK\nWALLPAPER STUDIO"
-            textSize = 27f
-            setTextColor(Color.WHITE)
-            typeface = android.graphics.Typeface.create("sans-serif-medium", 0)
-        })
-        root.addView(TextView(this).apply {
-            text = "Live clock pehle se ON hai — photo ke bina bhi clock dikhegi."
-            textSize = 14f
-            setTextColor(Color.LTGRAY)
-            setPadding(0, 8, 0, pad)
-        })
-        fun label(value: String) {
+        fun text(value: String, size: Float, color: Int, bold: Boolean = false) {
             root.addView(TextView(this).apply {
-                text = value
-                textSize = 15f
-                setTextColor(Color.WHITE)
-                setPadding(0, pad / 2, 0, 8)
+                text = value; textSize = size; setTextColor(color)
+                if (bold) typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                setPadding(0, 8, 0, 8)
             })
         }
-        fun addSpinner(items: List<String>, key: String, default: Int) {
-            val spinner = Spinner(this)
-            spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
-            spinner.setSelection(prefs.getInt(key, default).coerceIn(items.indices))
-            spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        fun section(value: String) {
+            text(value, 13f, Color.rgb(110, 190, 255), true)
+        }
+        fun spinner(title: String, items: List<String>, key: String, default: Int) {
+            section(title)
+            val s = Spinner(this)
+            s.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, items)
+            s.setSelection(prefs.getInt(key, default).coerceIn(items.indices))
+            s.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
-                override fun onItemSelected(parent: AdapterView<*>?, view: android.view.View?, position: Int, id: Long) {
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                     prefs.edit().putInt(key, position).apply()
                 }
             }
-            root.addView(spinner, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, pad * 2))
+            root.addView(s, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, pad * 2))
         }
-        label("01  CLOCK DESIGN")
-        addSpinner(styles, "style", 0)
-        label("02  TIME FORMAT")
-        addSpinner(listOf("24-hour", "12-hour"), "format", 0)
+        text("WALLPAPER X", 31f, Color.WHITE, true)
+        text("ULTIMATE LIVE WALLPAPER STUDIO", 12f, Color.rgb(120, 190, 255), true)
+        text("Live clock • Cinematic themes • Your own photos • ₹0", 14f, Color.LTGRAY)
+        spinner("01  WALLPAPER WORLD", themes, "theme", 0)
+        spinner("02  CLOCK DESIGN", styles, "style", 0)
+        spinner("03  CLOCK COLOR", listOf("White", "Gold", "Ice Blue", "Pink", "Green", "Red"), "clock_color", 0)
+        spinner("04  CLOCK SIZE", listOf("Small", "Medium", "Large"), "clock_size", 1)
+        spinner("05  CLOCK POSITION", listOf("Top", "Center", "Bottom"), "clock_position", 0)
+        spinner("06  TIME FORMAT", listOf("24-hour", "12-hour"), "format", 0)
         root.addView(CheckBox(this).apply {
-            text = "Show seconds"
-            setTextColor(Color.WHITE)
-            buttonTintList = android.content.res.ColorStateList.valueOf(Color.WHITE)
+            text = "Show seconds"; setTextColor(Color.WHITE)
+            buttonTintList = android.content.res.ColorStateList.valueOf(Color.rgb(90,180,255))
             isChecked = prefs.getBoolean("seconds", true)
             setOnCheckedChangeListener { _, checked -> prefs.edit().putBoolean("seconds", checked).apply() }
         })
-        label("03  CUSTOM CLOCK — COLOR")
-        addSpinner(listOf("White", "Gold", "Ice Blue", "Pink", "Green"), "clock_color", 0)
-        label("CUSTOM CLOCK — SIZE")
-        addSpinner(listOf("Small", "Medium", "Large"), "clock_size", 1)
-        label("CUSTOM CLOCK — POSITION")
-        addSpinner(listOf("Top", "Center", "Bottom"), "clock_position", 0)
-        label("04  YOUR PHOTO")
+        root.addView(CheckBox(this).apply {
+            text = "Show date"; setTextColor(Color.WHITE)
+            buttonTintList = android.content.res.ColorStateList.valueOf(Color.rgb(90,180,255))
+            isChecked = prefs.getBoolean("show_date", true)
+            setOnCheckedChangeListener { _, checked -> prefs.edit().putBoolean("show_date", checked).apply() }
+        })
+        section("07  PERSONAL WALLPAPER")
         root.addView(Button(this).apply {
             text = "Choose photo from gallery"
             setOnClickListener {
-                val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-                    addCategory(Intent.CATEGORY_OPENABLE)
-                    type = "image/*"
+                val i = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    addCategory(Intent.CATEGORY_OPENABLE); type = "image/*"
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                 }
-                startActivityForResult(intent, pickPhoto)
+                startActivityForResult(i, pickPhoto)
             }
         })
-        label("05  APPLY")
         root.addView(Button(this).apply {
-            text = "Preview & set live wallpaper"
+            text = "Remove photo • Use built-in theme"
             setOnClickListener {
-                val intent = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
+                prefs.edit().remove("photo_uri").putInt("theme", 0).apply()
+                Toast.makeText(this@MainActivity, "Built-in wallpaper selected", Toast.LENGTH_SHORT).show()
+            }
+        })
+        section("08  ACTIVATE")
+        root.addView(Button(this).apply {
+            text = "PREVIEW & SET LIVE WALLPAPER"
+            setTextColor(Color.WHITE)
+            setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.rgb(25,105,190)))
+            setOnClickListener {
+                val i = Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply {
                     putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,
                         ComponentName(this@MainActivity, ClockWallpaperService::class.java))
                 }
-                startActivity(intent)
+                startActivity(i)
             }
         })
-        root.addView(TextView(this).apply {
-            text = "\nClock automatically appears and updates every second. Photo is optional. Lock-screen support depends on your phone."
-            textSize = 12f
-            setTextColor(Color.LTGRAY)
-        })
-        val scroll = ScrollView(this)
+        text("Free built-in themes work offline. Live clock updates automatically. Original inspired artwork only; no copied brand logos or copyrighted character art. Lock-screen availability depends on your phone's software.", 12f, Color.LTGRAY)
         scroll.addView(root)
         setContentView(scroll)
     }
@@ -111,8 +113,8 @@ class MainActivity : Activity() {
         if (requestCode == pickPhoto && resultCode == RESULT_OK) {
             val uri: Uri = data?.data ?: return
             try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
-            prefs.edit().putString("photo_uri", uri.toString()).apply()
-            Toast.makeText(this, "Photo saved. Live wallpaper dobara open karein.", Toast.LENGTH_LONG).show()
+            prefs.edit().putString("photo_uri", uri.toString()).putInt("theme", 8).apply()
+            Toast.makeText(this, "Photo saved. Set live wallpaper again.", Toast.LENGTH_LONG).show()
         }
     }
 }

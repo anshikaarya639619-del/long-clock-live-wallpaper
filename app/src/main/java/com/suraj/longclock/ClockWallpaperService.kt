@@ -15,7 +15,7 @@ class ClockWallpaperService : WallpaperService() {
 
     inner class ClockEngine : Engine() {
         private val handler = Handler(Looper.getMainLooper())
-        private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        private val bitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         private var visible = false
         private var photo: Bitmap? = null
         private val tick = object : Runnable {
@@ -24,19 +24,16 @@ class ClockWallpaperService : WallpaperService() {
                 if (visible) handler.postDelayed(this, 1000L)
             }
         }
-
         override fun onSurfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
             super.onSurfaceChanged(holder, format, width, height)
             loadPhoto()
             drawFrame()
         }
-
         override fun onVisibilityChanged(visibleNow: Boolean) {
             visible = visibleNow
             handler.removeCallbacks(tick)
             if (visible) tick.run()
         }
-
         override fun onDestroy() {
             visible = false
             handler.removeCallbacks(tick)
@@ -44,58 +41,93 @@ class ClockWallpaperService : WallpaperService() {
             photo = null
             super.onDestroy()
         }
-
         private fun loadPhoto() {
             photo?.recycle()
             photo = null
             val raw = getSharedPreferences("clock_wallpaper", MODE_PRIVATE).getString("photo_uri", null) ?: return
-            try {
-                contentResolver.openInputStream(Uri.parse(raw))?.use { photo = BitmapFactory.decodeStream(it) }
-            } catch (_: Exception) { photo = null }
+            try { contentResolver.openInputStream(Uri.parse(raw))?.use { photo = BitmapFactory.decodeStream(it) } }
+            catch (_: Exception) { photo = null }
         }
-
         private fun drawFrame() {
             val holder = surfaceHolder
             var canvas: Canvas? = null
             try {
-                canvas = holder.lockCanvas()
-                if (canvas != null) {
-                    val w = canvas.width.toFloat()
-                    val h = canvas.height.toFloat()
-                    val image = photo
-                    if (image != null) {
-                        val scale = maxOf(w / image.width, h / image.height)
-                        val sw = w / scale
-                        val sh = h / scale
-                        val src = Rect(((image.width - sw) / 2).toInt(), ((image.height - sh) / 2).toInt(),
-                            ((image.width + sw) / 2).toInt(), ((image.height + sh) / 2).toInt())
-                        canvas.drawBitmap(image, src, Rect(0, 0, w.toInt(), h.toInt()), paint)
-                        canvas.drawRect(0f, 0f, w, h, Paint().apply { color = Color.argb(70, 0, 0, 0) })
-                    } else {
-                        canvas.drawColor(Color.rgb(18, 20, 28))
-                    }
+                canvas = holder.lockCanvas() ?: return
+                val w = canvas.width.toFloat()
+                val h = canvas.height.toFloat()
+                val prefs = getSharedPreferences("clock_wallpaper", MODE_PRIVATE)
+                val style = prefs.getInt("style", 0)
+                val use24 = prefs.getInt("format", 0) == 0
+                val showSeconds = prefs.getBoolean("seconds", true)
+                val image = photo
+                if (image != null) {
+                    val scale = maxOf(w / image.width, h / image.height)
+                    val sw = w / scale; val sh = h / scale
+                    val src = Rect(((image.width - sw) / 2).toInt(), ((image.height - sh) / 2).toInt(),
+                        ((image.width + sw) / 2).toInt(), ((image.height + sh) / 2).toInt())
+                    canvas.drawBitmap(image, src, Rect(0, 0, w.toInt(), h.toInt()), bitmapPaint)
+                    canvas.drawRect(0f, 0f, w, h, Paint().apply { color = Color.argb(if (style == 1) 35 else 78, 0, 0, 0) })
+                } else canvas.drawColor(Color.rgb(18, 20, 28))
 
-                    val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-                    val date = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
-                    val clockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                        color = Color.WHITE
-                        textAlign = Paint.Align.CENTER
-                        typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
-                        textSize = w * 0.19f
-                        setShadowLayer(12f, 0f, 3f, Color.BLACK)
+                val now = Date()
+                val timePattern = if (use24) { if (showSeconds) "HH:mm:ss" else "HH:mm" } else { if (showSeconds) "h:mm:ss" else "h:mm" }
+                val time = SimpleDateFormat(timePattern, Locale.getDefault()).format(now)
+                val date = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(now)
+                val white = Color.WHITE
+                val x: Float
+                val y: Float
+                val size: Float
+                val align: Paint.Align
+                val face: Typeface
+                when (style) {
+                    0 -> { // iPhone-inspired oversized, centered long clock
+                        x = w / 2f; y = h * 0.34f; size = w * 0.205f; align = Paint.Align.CENTER
+                        face = Typeface.create("sans-serif-thin", Typeface.NORMAL)
                     }
-                    val datePaint = Paint(clockPaint).apply {
-                        textSize = w * 0.045f
-                        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    1 -> { // Samsung One UI-inspired left aligned typography
+                        x = w * 0.09f; y = h * 0.29f; size = w * 0.17f; align = Paint.Align.LEFT
+                        face = Typeface.create("sans-serif", Typeface.NORMAL)
                     }
-                    val centerY = h * 0.34f
-                    canvas.drawText(time, w / 2f, centerY, clockPaint)
-                    canvas.drawText(date.uppercase(Locale.getDefault()), w / 2f, centerY + w * 0.09f, datePaint)
+                    2 -> { // Pixel-inspired clean centered clock
+                        x = w / 2f; y = h * 0.38f; size = w * 0.16f; align = Paint.Align.CENTER
+                        face = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    }
+                    3 -> { // Minimal luxury
+                        x = w / 2f; y = h * 0.72f; size = w * 0.13f; align = Paint.Align.CENTER
+                        face = Typeface.create("serif", Typeface.NORMAL)
+                    }
+                    else -> {
+                        x = w / 2f; y = h * 0.33f; size = w * 0.15f; align = Paint.Align.CENTER
+                        face = Typeface.create("monospace", Typeface.NORMAL)
+                    }
+                }
+                val clockPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = white; textAlign = align; typeface = face; textSize = size
+                    setShadowLayer(14f, 0f, 3f, Color.BLACK)
+                }
+                val datePaint = Paint(clockPaint).apply {
+                    textSize = w * 0.043f
+                    typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+                    letterSpacingCompat()
+                }
+                val dateY = y + size * 0.62f
+                if (style == 1) {
+                    canvas.drawText(date.uppercase(Locale.getDefault()), x, y - size * 0.85f, datePaint)
+                    canvas.drawText(time, x, y, clockPaint)
+                } else {
+                    canvas.drawText(time, x, y, clockPaint)
+                    canvas.drawText(date.uppercase(Locale.getDefault()), x, dateY, datePaint)
+                }
+                if (!use24) {
+                    val ampm = SimpleDateFormat("a", Locale.getDefault()).format(now)
+                    val small = Paint(datePaint).apply { textSize = w * 0.035f }
+                    canvas.drawText(ampm, x, dateY + w * 0.07f, small)
                 }
             } catch (_: Exception) {
             } finally {
-                if (canvas != null) try { holder.unlockCanvasAndPost(canvas) } catch (_: Exception) { }
+                if (canvas != null) try { holder.unlockCanvasAndPost(canvas) } catch (_: Exception) {}
             }
         }
     }
+    private fun Paint.letterSpacingCompat() { /* reserved for consistent cross-version typography */ }
 }

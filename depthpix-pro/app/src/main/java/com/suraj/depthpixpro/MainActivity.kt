@@ -62,9 +62,9 @@ class MainActivity : ComponentActivity() {
   val captionInput=EditText(this).apply{hint="Custom text / name";setTextColor(Color.WHITE);setHintTextColor(Color.GRAY);singleLine=true;setBackgroundColor(0xFF182236.toInt())}
   root.addView(captionInput)
   root.addView(btn("APPLY CUSTOM TEXT"){preview.caption=captionInput.text.toString().take(32);preview.invalidate()})
-  root.addView(btn("⬇  EXPORT HIGH-RES PNG"){saver.launch("DepthPix-Wallpaper.png")})
+  root.addView(btn("⬇  EXPORT 2× PNG"){saver.launch("DepthPix-Wallpaper.png")})
   root.addView(btn("SET LIVE WALLPAPER"){
-   try{val i=Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply{putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,ComponentName(this@MainActivity,DepthLiveWallpaperService::class.java))};startActivity(i)}
+   try{getSharedPreferences("depthpix",MODE_PRIVATE).edit().putInt("design",index).putFloat("clockSize",preview.clockSize).putInt("clockColor",clockColor).putBoolean("showDate",showDate).putBoolean("longClock",longClock).putString("caption",preview.caption).apply();val i=Intent(WallpaperManager.ACTION_CHANGE_LIVE_WALLPAPER).apply{putExtra(WallpaperManager.EXTRA_LIVE_WALLPAPER_COMPONENT,ComponentName(this@MainActivity,DepthLiveWallpaperService::class.java))};startActivity(i)}
    catch(_:Exception){status.text="Live wallpaper setting unavailable"}
   })
   status=TextView(this).apply{text="1000 original designs • offline";textSize=11f;setTextColor(Color.LTGRAY);setPadding(0,12,0,8)};root.addView(status)
